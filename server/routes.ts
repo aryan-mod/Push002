@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { mlService } from "./services/ml-service";
 import { alertService } from "./services/alert-service";
 import { websocketService } from "./services/websocket-service";
-import { insertSiteSchema, insertSensorSchema, insertSensorReadingSchema, insertDroneImageSchema, insertAlertSchema, touristAlertSchema, userSettingsValidationSchema } from "@shared/schema";
+import { insertSiteSchema, insertSensorSchema, insertSensorReadingSchema, insertDroneImageSchema, insertAlertSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -360,81 +360,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Images fetch error:", error);
       res.status(500).json({ error: "Failed to fetch images" });
-    }
-  });
-
-  // User settings endpoints for tourist safety preferences
-  app.get("/api/v1/user/settings", async (req, res) => {
-    try {
-      const userId = req.headers['user-id'] as string || "default"; // In real app, get from auth
-      const settings = await storage.getUserSettings(userId);
-      
-      if (!settings) {
-        // Return default settings if none exist
-        const defaultSettings = {
-          geoFence: { enabled: true, radius: 5, alertOnExit: true, alertOnEntry: false },
-          alertTypes: { medical: true, weather: true, crime: false, naturalDisaster: true, wildlife: true, accident: true, other: false },
-          severityFilter: { critical: true, high: true, medium: false, low: false },
-          notifications: { pushNotifications: true, emailAlerts: false, smsAlerts: false, soundEnabled: true, vibrationEnabled: true },
-          contacts: { emergencyContact1: "", emergencyContact2: "", medicalInfo: "", bloodType: "", allergies: "" },
-          location: { shareLocation: true, highAccuracyMode: false, locationHistory: true, batteryOptimization: true }
-        };
-        return res.json(defaultSettings);
-      }
-      
-      // Convert database format to frontend format
-      const formattedSettings = {
-        geoFence: {
-          enabled: settings.geoFenceEnabled,
-          radius: settings.geoFenceRadius,
-          alertOnExit: settings.alertOnExit,
-          alertOnEntry: settings.alertOnEntry
-        },
-        alertTypes: settings.alertTypes as any,
-        severityFilter: settings.severityFilter as any,
-        notifications: settings.notificationSettings as any,
-        contacts: {
-          emergencyContact1: settings.emergencyContact1 || "",
-          emergencyContact2: settings.emergencyContact2 || "",
-          medicalInfo: settings.medicalInfo || "",
-          bloodType: settings.bloodType || "",
-          allergies: settings.allergies || ""
-        },
-        location: {
-          shareLocation: settings.shareLocation,
-          highAccuracyMode: settings.highAccuracyMode,
-          locationHistory: settings.locationHistory,
-          batteryOptimization: settings.batteryOptimization
-        }
-      };
-      
-      res.json(formattedSettings);
-    } catch (error) {
-      console.error("Error fetching user settings:", error);
-      res.status(500).json({ error: "Failed to fetch user settings" });
-    }
-  });
-
-  app.put("/api/v1/user/settings", async (req, res) => {
-    try {
-      // Validate settings structure
-      const validationResult = userSettingsValidationSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          error: "Invalid settings format", 
-          details: validationResult.error.issues 
-        });
-      }
-
-      const userId = req.headers['user-id'] as string || "default"; // In real app, get from auth
-      const settingsData = validationResult.data;
-      
-      const updatedSettings = await storage.updateUserSettings(userId, settingsData);
-      
-      res.json({ message: "Settings updated successfully", settings: updatedSettings });
-    } catch (error) {
-      console.error("Error updating user settings:", error);
-      res.status(500).json({ error: "Failed to update user settings" });
     }
   });
 

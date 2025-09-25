@@ -1,9 +1,8 @@
 import { 
-  sites, sensors, sensorReadings, droneImages, predictions, alerts, models, alertNotifications, users, userSettings,
+  sites, sensors, sensorReadings, droneImages, predictions, alerts, models, alertNotifications, users,
   type Site, type InsertSite, type Sensor, type InsertSensor, type SensorReading, type InsertSensorReading,
   type DroneImage, type InsertDroneImage, type Prediction, type InsertPrediction, type Alert, type InsertAlert,
-  type Model, type InsertModel, type AlertNotification, type InsertAlertNotification, type User, type InsertUser,
-  type UserSettings, type InsertUserSettings
+  type Model, type InsertModel, type AlertNotification, type InsertAlertNotification, type User, type InsertUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
@@ -56,10 +55,6 @@ export interface IStorage {
   // Alert Notifications
   createAlertNotification(notification: InsertAlertNotification): Promise<AlertNotification>;
   updateNotificationStatus(id: string, status: string): Promise<void>;
-
-  // User Settings for Tourist Safety
-  getUserSettings(userId?: string): Promise<UserSettings | undefined>;
-  updateUserSettings(userId: string, settings: any): Promise<UserSettings>;
 
   // Analytics
   getRiskMetrics(): Promise<{
@@ -285,65 +280,6 @@ export class DatabaseStorage implements IStorage {
       updateData.sentAt = new Date();
     }
     await db.update(alertNotifications).set(updateData).where(eq(alertNotifications.id, id));
-  }
-
-  async getUserSettings(userId?: string): Promise<UserSettings | undefined> {
-    const targetUserId = userId || "default";
-    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, targetUserId));
-    return settings || undefined;
-  }
-
-  async updateUserSettings(userId: string, settingsData: any): Promise<UserSettings> {
-    const targetUserId = userId || "default";
-    
-    // Check if settings exist
-    const existing = await this.getUserSettings(targetUserId);
-    
-    if (existing) {
-      // Update existing settings
-      const [updated] = await db.update(userSettings).set({
-        geoFenceEnabled: settingsData.geoFence.enabled,
-        geoFenceRadius: settingsData.geoFence.radius,
-        alertOnExit: settingsData.geoFence.alertOnExit,
-        alertOnEntry: settingsData.geoFence.alertOnEntry,
-        alertTypes: settingsData.alertTypes,
-        severityFilter: settingsData.severityFilter,
-        notificationSettings: settingsData.notifications,
-        emergencyContact1: settingsData.contacts.emergencyContact1,
-        emergencyContact2: settingsData.contacts.emergencyContact2,
-        medicalInfo: settingsData.contacts.medicalInfo,
-        bloodType: settingsData.contacts.bloodType,
-        allergies: settingsData.contacts.allergies,
-        shareLocation: settingsData.location.shareLocation,
-        highAccuracyMode: settingsData.location.highAccuracyMode,
-        locationHistory: settingsData.location.locationHistory,
-        batteryOptimization: settingsData.location.batteryOptimization,
-        updatedAt: new Date(),
-      }).where(eq(userSettings.userId, targetUserId)).returning();
-      return updated;
-    } else {
-      // Create new settings
-      const [created] = await db.insert(userSettings).values({
-        userId: targetUserId,
-        geoFenceEnabled: settingsData.geoFence.enabled,
-        geoFenceRadius: settingsData.geoFence.radius,
-        alertOnExit: settingsData.geoFence.alertOnExit,
-        alertOnEntry: settingsData.geoFence.alertOnEntry,
-        alertTypes: settingsData.alertTypes,
-        severityFilter: settingsData.severityFilter,
-        notificationSettings: settingsData.notifications,
-        emergencyContact1: settingsData.contacts.emergencyContact1,
-        emergencyContact2: settingsData.contacts.emergencyContact2,
-        medicalInfo: settingsData.contacts.medicalInfo,
-        bloodType: settingsData.contacts.bloodType,
-        allergies: settingsData.contacts.allergies,
-        shareLocation: settingsData.location.shareLocation,
-        highAccuracyMode: settingsData.location.highAccuracyMode,
-        locationHistory: settingsData.location.locationHistory,
-        batteryOptimization: settingsData.location.batteryOptimization,
-      }).returning();
-      return created;
-    }
   }
 
   async getRiskMetrics(): Promise<{

@@ -45,7 +45,7 @@ class WebSocketService {
       // Send welcome message
       this.sendToClient(ws, {
         type: 'connected',
-        data: { message: 'Connected to GeoMindFlow Tourist Safety System' }
+        data: { message: 'Connected to RockWatch AI real-time service' }
       });
     });
   }
