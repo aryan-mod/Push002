@@ -1,0 +1,65 @@
+You are an expert full-stack AI + GIS engineer.  
+I have a repo called Push002. Upgrade it to a **real-time system** with the following features:
+
+### 1. Backend (FastAPI)
+- Add role-based auth with JWT:
+  - Roles: admin, user.
+  - Middleware: check role for protected endpoints.
+- Endpoints:
+  - POST `/api/v1/predict` → Input {rainfall, slope, strain, pressure, lat, lon}.
+    - Call ML model (dummy RandomForest on synthetic data).
+    - Fetch weather data for lat/lon from OpenWeather API.
+    - Return JSON {probability, category, lat, lon, weather, temperature, timestamp}.
+  - GET `/api/v1/alerts` → Return list of stored alerts with geo + weather.
+  - WS `/ws/alerts` → Push real-time alerts to frontend.
+  - Admin-only:
+    - POST `/api/v1/sites` → Add/update mine site info.
+    - POST `/api/v1/models` → Upload new model, manage versions.
+
+- DB: Postgres + PostGIS
+  - Tables: users, alerts, sites, models.
+  - Alerts table includes: id, probability, category, lat, lon, weather, temperature, timestamp.
+
+### 2. Frontend (Next.js + Tailwind + Mapbox)
+- Auth pages: login/signup (JWT).
+- **User Dashboard**:
+  - Mapbox map → risk heatmap + markers.
+  - WebSocket live alerts update markers.
+  - Search bar → enter location → fetch weather + prediction.
+  - Alerts panel → recent alerts + risk category.
+- **Admin Dashboard**:
+  - Manage mine sites (list, add, edit).
+  - View all alerts (with filters).
+  - Upload DEM/drone files (dummy file storage).
+  - Manage models (upload, rollback).
+- Design:
+  - Color-coded map markers: green (safe), yellow (medium), red (high).
+  - Popup shows: Probability %, Risk level, Weather, Temperature.
+
+### 3. Edge Agent (optional for demo)
+- Update `/edge/agent.py`:
+  - Generate synthetic sensor data every 10s with random lat/lon.
+  - Send to backend `/predict`.
+  - If risk > 0.7, trigger buzzer (gpiozero) and push to MQTT.
+
+### 4. Integration
+- Connect frontend with backend via REST + WebSocket.
+- Use `.env.local` for MAPBOX_TOKEN, OPENWEATHER_API_KEY, TWILIO, SMTP, JWT_SECRET.
+
+### 5. Docs
+- `docs/DEMO.md`: 
+  - Step 1: Run `docker-compose up`.
+  - Step 2: Login as user → see map.
+  - Step 3: Search location → get weather + risk.
+  - Step 4: Simulate event → marker turns red, alert SMS/email sent.
+  - Step 5: Login as admin → manage sites + view alerts.
+
+### Deliverables
+- Update repo with:
+  - `/server` → FastAPI backend with auth, APIs, DB models.
+  - `/client` → Next.js frontend with user/admin dashboards.
+  - `/ml` → Dummy training script + model.pkl.
+  - `/edge` → Synthetic data agent.
+  - `/docs` → DEMO.md + ARCHITECTURE.md.
+  - `docker-compose.yml`
+  - `.env.example`
