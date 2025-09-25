@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import SiteMonitoring from "@/pages/site-monitoring";
+import LocationSearch from "@/pages/location-search";
 import ModelManagement from "@/pages/model-management";
 import DataUpload from "@/pages/data-upload";
 import NotFound from "@/pages/not-found";
@@ -20,6 +21,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/sites" component={SiteMonitoring} />
+          <Route path="/location-search" component={LocationSearch} />
           <Route path="/models" component={ModelManagement} />
           <Route path="/upload" component={DataUpload} />
           <Route component={NotFound} />

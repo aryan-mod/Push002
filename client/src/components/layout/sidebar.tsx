@@ -11,12 +11,14 @@ import {
   Bell, 
   BarChart3, 
   Settings, 
-  Mountain 
+  Mountain,
+  Search 
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Site Monitoring", href: "/sites", icon: MapPin },
+  { name: "Location Search", href: "/location-search", icon: Search },
   { name: "Model Management", href: "/models", icon: Brain },
   { name: "Data Upload", href: "/upload", icon: Upload },
   { name: "Alert Settings", href: "/alerts", icon: Bell },

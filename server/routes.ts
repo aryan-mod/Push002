@@ -497,5 +497,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location search endpoints
+  app.get("/api/v1/locations/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      
+      if (!q || (q as string).length < 3) {
+        return res.json([]);
+      }
+
+      // Mock location search results (in real implementation, use a geocoding service like OpenStreetMap Nominatim)
+      const mockLocations = [
+        {
+          id: '1',
+          name: 'Mumbai',
+          displayName: 'Mumbai, Maharashtra, India',
+          latitude: 19.0760,
+          longitude: 72.8777,
+          country: 'India',
+          region: 'Maharashtra',
+          type: 'city'
+        },
+        {
+          id: '2',
+          name: 'Delhi',
+          displayName: 'Delhi, India',
+          latitude: 28.7041,
+          longitude: 77.1025,
+          country: 'India',
+          region: 'Delhi',
+          type: 'city'
+        },
+        {
+          id: '3',
+          name: 'Bangalore',
+          displayName: 'Bangalore, Karnataka, India',
+          latitude: 12.9716,
+          longitude: 77.5946,
+          country: 'India',
+          region: 'Karnataka',
+          type: 'city'
+        },
+        {
+          id: '4',
+          name: 'Shimla',
+          displayName: 'Shimla, Himachal Pradesh, India',
+          latitude: 31.1048,
+          longitude: 77.1734,
+          country: 'India',
+          region: 'Himachal Pradesh',
+          type: 'city'
+        },
+        {
+          id: '5',
+          name: 'Manali',
+          displayName: 'Manali, Himachal Pradesh, India',
+          latitude: 32.2396,
+          longitude: 77.1887,
+          country: 'India',
+          region: 'Himachal Pradesh',
+          type: 'town'
+        }
+      ];
+
+      // Filter locations based on search query
+      const filteredLocations = mockLocations.filter(location =>
+        location.name.toLowerCase().includes((q as string).toLowerCase()) ||
+        location.displayName.toLowerCase().includes((q as string).toLowerCase())
+      ).slice(0, 5);
+
+      res.json(filteredLocations);
+    } catch (error) {
+      console.error("Location search error:", error);
+      res.status(500).json({ error: "Failed to search locations" });
+    }
+  });
+
+  app.get("/api/v1/locations/details", async (req, res) => {
+    try {
+      const { lat, lon } = req.query;
+      
+      if (!lat || !lon) {
+        return res.status(400).json({ error: "Latitude and longitude are required" });
+      }
+
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lon as string);
+
+      // Mock weather data (in real implementation, use OpenWeatherMap, AccuWeather, etc.)
+      const weatherData = {
+        temperature: Math.round(20 + Math.random() * 15), // 20-35°C
+        humidity: Math.round(40 + Math.random() * 40), // 40-80%
+        windSpeed: Math.round(5 + Math.random() * 20), // 5-25 km/h
+        windDirection: Math.round(Math.random() * 360),
+        visibility: Math.round(5 + Math.random() * 15), // 5-20 km
+        pressure: Math.round(1000 + Math.random() * 50), // 1000-1050 hPa
+        condition: ['clear', 'clouds', 'rain'][Math.floor(Math.random() * 3)],
+        description: ['Clear sky', 'Partly cloudy', 'Light rain'][Math.floor(Math.random() * 3)],
+        icon: 'clear',
+        uvIndex: Math.round(Math.random() * 10),
+        precipitation: Math.round(Math.random() * 5),
+        dewPoint: Math.round(15 + Math.random() * 10)
+      };
+
+      // Calculate risk assessment based on location and weather
+      const isHighAltitude = latitude > 30; // Rough approximation for Himalayan regions
+      const isWeatherRisky = weatherData.condition === 'rain' || weatherData.windSpeed > 20;
+      
+      let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+      let riskScore = 20;
+      
+      if (isHighAltitude) {
+        riskScore += 30;
+        riskLevel = 'medium';
+      }
+      
+      if (isWeatherRisky) {
+        riskScore += 25;
+        riskLevel = riskScore > 60 ? 'high' : 'medium';
+      }
+      
+      if (riskScore > 80) {
+        riskLevel = 'critical';
+      }
+
+      const riskAssessment = {
+        riskLevel,
+        riskScore: Math.min(riskScore, 95),
+        factors: {
+          weather: isWeatherRisky ? 8 : 3,
+          geological: isHighAltitude ? 7 : 2,
+          historical: Math.round(2 + Math.random() * 4),
+          environmental: Math.round(2 + Math.random() * 3)
+        },
+        alerts: isWeatherRisky ? ['Adverse weather conditions detected'] : [],
+        recommendations: [
+          isHighAltitude ? 'Monitor slope stability closely' : 'Standard monitoring protocols',
+          isWeatherRisky ? 'Avoid heavy machinery operations' : 'Normal operations permitted'
+        ]
+      };
+
+      // Find nearest monitoring sites (mock data)
+      const nearestSites = [
+        {
+          id: 'site-1',
+          name: 'Alpine Monitoring Station A',
+          distance: 5.2 + Math.random() * 10,
+          riskLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
+        },
+        {
+          id: 'site-2',
+          name: 'Valley Sensor Network B',
+          distance: 8.7 + Math.random() * 15,
+          riskLevel: ['low', 'medium'][Math.floor(Math.random() * 2)]
+        }
+      ].sort((a, b) => a.distance - b.distance);
+
+      const locationData = {
+        location: {
+          latitude,
+          longitude,
+          name: `Location ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`
+        },
+        weather: weatherData,
+        riskAssessment,
+        nearestSites
+      };
+
+      res.json(locationData);
+    } catch (error) {
+      console.error("Location details error:", error);
+      res.status(500).json({ error: "Failed to fetch location details" });
+    }
+  });
+
   return httpServer;
 }
