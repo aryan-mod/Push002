@@ -30,7 +30,7 @@ export default function Dashboard() {
     refetchInterval: 60000, // Refresh every minute
   });
 
-  const { data: alerts = [], isLoading: alertsLoading } = useQuery<(Alert & { site: { name: string; } })[]>({
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery<(Alert & { site: Site })[]>({
     queryKey: ["/api/v1/alerts"],
     refetchInterval: 5000, // Refresh every 5 seconds
   });

@@ -7,21 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/layout/header";
 import { MapPin, Activity, Battery, Signal } from "lucide-react";
+import type { Site } from "@shared/schema";
 
 export default function SiteMonitoring() {
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
 
-  const { data: sites, isLoading } = useQuery({
+  const { data: sites = [], isLoading } = useQuery<Site[]>({
     queryKey: ["/api/v1/sites"],
     refetchInterval: 30000,
   });
 
-  const filteredSites = sites?.filter(site => {
+  const filteredSites = sites.filter((site: Site) => {
     const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRisk = riskFilter === "all" || site.riskLevel === riskFilter;
     return matchesSearch && matchesRisk;
-  }) || [];
+  });
 
   const getRiskColor = (riskLevel: string) => {
     switch (riskLevel) {

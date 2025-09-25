@@ -151,7 +151,7 @@ export default function RealTimeAlerts({ alerts, isLoading }: RealTimeAlertsProp
                     <div className="flex items-center justify-between">
                       <p className={`text-sm font-medium ${styles.title}`}>{alert.title}</p>
                       <span className={`text-xs ${styles.time}`}>
-                        {formatTimeAgo(alert.createdAt)}
+                        {formatTimeAgo(alert.createdAt || new Date())}
                       </span>
                     </div>
                     <p className={`text-sm ${styles.message}`}>
