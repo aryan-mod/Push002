@@ -1,0 +1,82 @@
+You are an expert full-stack ML/AI & GIS engineer. Produce a complete, advanced, production-ready prototype for the "AI-Based Rockfall Prediction & Alert System" (Smart India Hackathon 25071). Generate code + infra + docs split into backend, frontend, edge service, and ML pipeline. Follow best practices: modular code, tests, Docker, env examples, CI/CD workflows, and security defaults. Output should be split into folders: /ml, /backend, /frontend, /edge, /infra, /docs.
+
+REQUIREMENTS (Advanced):
+A. Data & Models
+  1. Multi-input ML architecture:
+     - Image model: CNN (PyTorch) for drone imagery — uses pretrained ResNet50 + GradCAM support.
+     - DEM processing: use rasterio to compute slope/aspect/elevation features.
+     - Time-series model: LSTM/Temporal CNN for sensor streams (strain, displacement, pore_pressure).
+     - Fusion head: concatenate image features + DEM features + time-series embedding + weather -> fully connected layers -> output probability [0,1] + uncertainty (aleatoric).
+     - Train & export: TorchScript + ONNX export; also save a lightweight scikit-learn ensemble for quick inference (RandomForest + calibrated probs).
+  2. Explainability:
+     - SHAP for tabular/time features, GradCAM for images.
+     - Produce human-friendly reason string (top-3 contributing features).
+  3. Synthetic data generator:
+     - Script to synthesize DEM + sensor time-series + matched drone images for training augmentation.
+  4. Auto-retrain pipeline:
+     - Airflow/DAG or Prefect flow to schedule retrain on new labeled incidents. Include evaluation metrics (ROC-AUC, PR-AUC) and model comparison.
+
+B. Backend (FastAPI + Celery)
+  1. FastAPI service with endpoints:
+     - POST /api/v1/predict  -> accepts geo-point, timestamp, recent sensor timeseries, optional image URL -> returns {prob, category, explanation, model_version, uncertainty}.
+     - POST /api/v1/ingest   -> sensor/drones upload for storage.
+     - POST /api/v1/alert    -> manual/test alert trigger.
+     - GET /api/v1/models    -> model registry/status.
+     - WS /ws/alerts         -> websocket stream for real-time alerts.
+  2. Async task queue: Celery + Redis for heavy inference/jobs (image preprocessing, GradCAM).
+  3. Storage:
+     - Postgres + PostGIS for geodata & alerts.
+     - MinIO (S3 compatible) for images/DEM tiles.
+  4. Security:
+     - JWT auth + role based (admin/planner/observer).
+     - Rate limiting + input validation + CORS.
+  5. Observability:
+     - Structured logging (JSON).
+     - Prometheus metrics endpoints.
+
+C. Frontend (Next.js + Mapbox GL + Tailwind)
+  1. Pages:
+     - Dashboard: project map with Mapbox heatmap layer (risk score), cluster popups, live streaming alerts.
+     - Site page: time-series charts, recent images, explainability panel (top features + GradCAM overlay).
+     - Admin: model management (upload new model, rollbacks).
+     - Upload: drone image / DEM / sensor upload UI with progress.
+  2. Real-time:
+     - Use Socket.IO or native WebSocket to subscribe to /ws/alerts.
+  3. Offline / PWA:
+     - Support cached map tiles and local queueing of sensor uploads (for poor connectivity).
+  4. i18n multi-language support (English + Hindi).
+
+D. Edge Service (Lightweight inference)
+  1. Python service for Raspberry Pi / Jetson:
+     - Runs quantized ONNX model for local inference.
+     - Publishes events via MQTT to central backend (or local GSM SMS as fallback).
+     - Supports local alerts (buzzer/LED) + offline log sync.
+  2. Container + systemd service for startup.
+
+E. Alerts & Notifications
+  - Multi-channel: Twilio SMS, SMTP email, WhatsApp (Twilio), push notifications (Web Push).
+  - Alert rules engine: threshold, trend-based (sustained rise), and ensemble voting.
+  - Suggested action plan attached to each alert (evacuate sectors, pause blasting).
+
+F. CI/CD & Infra
+  - Docker for each service. Provide docker-compose for local dev and Kubernetes manifests for prod.
+  - GitHub Actions: lint, unit tests, build images, push to registry, deploy to staging.
+  - Terraform templates for cloud infra (ECR, RDS/Postgres, S3, IAM).
+  - Monitoring: Prometheus + Grafana dashboards, alertmanager.
+
+G. Tests, Docs, Samples
+  - Unit tests for models & API (pytest).
+  - Integration test that runs a pipeline: synthetic data -> train -> serve -> predict.
+  - README + architecture diagram + runbook for demo steps.
+
+DELIVERABLE FORMAT:
+- Provide implementation scaffolding with code stubs + key fully implemented files:
+  - ml/train.py, ml/models/*.py, ml/utils/*.py
+  - backend/app/main.py, backend/app/api/*.py, backend/app/services/*.py
+  - frontend/(Nextjs project)
+  - edge/agent.py
+  - infra/docker-compose.yml, infra/k8s/*
+  - .env.example, README.md, docs/ARCHITECTURE.md, docs/DEMO.md
+- Include sample synthetic dataset generator and a small pre-trained tiny model for quick demo (trained on synthetic). Provide commands to run full demo locally.
+
+Generate all code and files now.
