@@ -1,0 +1,69 @@
+You are an expert ML + Full-Stack engineer.  
+I already have a repo called **GeoMindFlow** with this structure:
+- /ml
+- /server
+- /client
+- /edge
+- /docs
+- docker-compose.yml
+- .env.example
+
+The repo currently has placeholders and high-level features.  
+Your task: **Fill the missing gaps** and generate production-quality code with stubs where needed.  
+Focus on completing the following features:
+
+### 1. ML Fusion Model
+- Create `ml/synth_data_generator.py` to generate synthetic DEM + sensor time-series + drone image samples.
+- Create `ml/train_fusion.py`:
+  - CNN backbone (ResNet-lite, pretrained) for images.
+  - LSTM (or TCN) for time-series sensors (strain, pore pressure).
+  - Simple MLP for DEM features (slope/aspect).
+  - Fusion head → probability of rockfall (0–1), category (Low/Med/High).
+  - Export as TorchScript (`model_v0.1.pt`) and ONNX (`model_v0.1.onnx`).
+  - Also export a lightweight RandomForest (scikit-learn) fallback model as `model_fallback.pkl`.
+
+### 2. Explainability
+- Add `ml/explain.py`:
+  - SHAP for tabular/time features.
+  - GradCAM for CNN images.
+  - Utility to return top-3 contributing features + optional GradCAM overlay saved in `/ml/outputs/`.
+
+### 3. Backend API (FastAPI)
+- In `server/app/api/predict.py`, implement POST `/api/v1/predict`:
+  - Input JSON: { site_id, timestamp, location(lat,lon), sensors[], dem_url?, image_url? }
+  - Output JSON: { probability, category, uncertainty, explanation[], model_version, gradcam_url? }
+- In `server/app/api/models.py`, implement GET `/api/v1/models` returning available models and metadata.
+- In `server/app/services/model_service.py`, load model(s) once, perform inference, call explainability if requested.
+- Add JWT-based auth (admin/planner/observer roles) in `server/app/main.py`.
+- Add Prometheus metrics endpoint `/metrics`.
+
+### 4. Edge Agent
+- In `/edge/agent.py`:
+  - Load quantized ONNX model.
+  - Accept sensor JSON input locally.
+  - Run inference and publish results to MQTT broker.
+  - If probability > 0.7, trigger buzzer/LED (gpiozero).
+  - Cache results if offline and sync later.
+
+### 5. Alerts
+- Extend backend `/api/v1/alert`:
+  - Trigger Twilio SMS, SMTP email, and WebPush.
+  - Alert rule engine: threshold (prob>0.7) and trend detection (3 rising points).
+
+### 6. Docs & Demo
+- Add `docs/DEMO.md`:
+  - How to run `docker-compose up`.
+  - How to generate synthetic data, train model, and test `/predict`.
+  - How to simulate a high-risk event → receive SMS/email.
+- Add `docs/ARCHITECTURE.md` with flow diagram and explanation.
+
+### 7. Infra
+- Ensure `/infra/docker-compose.yml` runs backend, frontend, DB (Postgres+PostGIS), MinIO, Redis.
+- Add `.env.example` keys for DB, MinIO, Twilio, SMTP, JWT, Mapbox.
+
+### Requirements:
+- Use best practices (Pydantic schemas, structured logging, error handling).
+- Provide unit test examples (`server/tests/test_predict.py`).
+- Keep code clean, modular, and production-ready.
+
+Generate the updated files and stubs where required.
