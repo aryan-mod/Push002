@@ -268,6 +268,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard trends
+  app.get("/api/v1/dashboard/trends/:timeRange?", async (req, res) => {
+    try {
+      const { timeRange = "24h" } = req.params;
+      
+      // Calculate time window
+      let timeWindow = 24; // hours
+      switch (timeRange) {
+        case "7d":
+          timeWindow = 24 * 7;
+          break;
+        case "30d":
+          timeWindow = 24 * 30;
+          break;
+        default:
+          timeWindow = 24;
+      }
+
+      // Generate sample trend data for the time range
+      const endTime = new Date();
+      const startTime = new Date(endTime.getTime() - timeWindow * 60 * 60 * 1000);
+      
+      // Get recent predictions for trending
+      const predictions = await storage.getPredictionsBySite("", 100); // Get from all sites
+      
+      // Generate trend data points
+      const dataPoints: Array<{
+        timestamp: string;
+        averageRisk: number;
+        activeSensors: number;
+        alertCount: number;
+      }> = [];
+
+      const pointCount = Math.min(timeWindow / (timeRange === "24h" ? 1 : timeRange === "7d" ? 6 : 24), 50);
+      
+      for (let i = 0; i < pointCount; i++) {
+        const pointTime = new Date(startTime.getTime() + (i * (timeWindow * 60 * 60 * 1000) / pointCount));
+        
+        dataPoints.push({
+          timestamp: pointTime.toISOString(),
+          averageRisk: 0.2 + Math.random() * 0.6, // Random between 0.2 and 0.8
+          activeSensors: 20 + Math.floor(Math.random() * 10), // Random between 20-30
+          alertCount: Math.floor(Math.random() * 5) // Random between 0-4
+        });
+      }
+
+      res.json({
+        timeRange,
+        data: dataPoints,
+        summary: {
+          totalDataPoints: dataPoints.length,
+          averageRisk: dataPoints.reduce((sum, p) => sum + p.averageRisk, 0) / dataPoints.length,
+          peakRisk: Math.max(...dataPoints.map(p => p.averageRisk)),
+          totalAlerts: dataPoints.reduce((sum, p) => sum + p.alertCount, 0)
+        }
+      });
+    } catch (error) {
+      console.error("Trends fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch trends" });
+    }
+  });
+
   // Predictions history
   app.get("/api/v1/predictions", async (req, res) => {
     try {
