@@ -1,0 +1,44 @@
+You are an AI coding assistant. The project is 'GeoMindFlow', a Smart Tourist Safety System with Next.js frontend, FastAPI backend, Mapbox for maps, and ML pipelines. Currently, some frontend features are only placeholders and not functional. Your task is to implement the missing functionality as follows:
+
+1. **Emergency Alert**
+   - Add a functional page/component for emergency alerts.
+   - Connect the button/icon to backend API (`/api/alerts/create`) to send an alert.
+   - Show a toast/notification confirming alert sent.
+
+2. **Nav Notification Icon**
+   - Add a `Notifications` page/component.
+   - Fetch all alerts from backend and display in a list or table.
+   - Link the notification bell icon to open this page or dropdown.
+
+3. **Alert Settings**
+   - Add a settings page/modal.
+   - Allow user to configure alert preferences (geo-fence radius, alert types, notification methods).
+   - Save settings to backend API.
+
+4. **Reports**
+   - Add a `Reports` page.
+   - Fetch historical alerts/reports from backend and display in table/grid with timestamps, location, type.
+   - Include search/filter functionality.
+
+5. **Map Live Tracking**
+   - Implement real-time user/tourist location on the map.
+   - Use WebSocket or Server-Sent Events (SSE) to update positions.
+   - Show route deviation alerts and optional heatmap for tourist clusters.
+
+6. **Location Search & Live Details**
+   - Add a search bar for any location on the map.
+   - When a location is selected, fetch and display live data:
+       - Current weather (temperature, humidity, wind speed)
+       - Risk alerts (crime, natural hazard, route deviation)
+       - Air quality / environment status
+   - Display this info in a sidebar or popup on the map.
+   - Use free/public APIs (like OpenWeatherMap for weather, your own backend for risk alerts).
+
+7. **Frontend Integration**
+   - Ensure all buttons (Emergency Alert, Alerts, Settings, Reports, Location Search) navigate to correct pages/components.
+   - Add proper state management to update UI on new alerts or location changes.
+
+8. **Code Comments**
+   - Add comments explaining each new component, function, and API integration.
+
+Generate all necessary frontend pages/components, backend API calls, integration code, and API fetch logic so that the app becomes fully functional with live emergency alerts, notifications, alert settings, reports, live map tracking, and live location-based weather & risk info.

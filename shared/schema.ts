@@ -75,7 +75,7 @@ export const alerts = pgTable("alerts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   siteId: varchar("site_id").references(() => sites.id).notNull(),
   predictionId: varchar("prediction_id").references(() => predictions.id),
-  type: text("type").notNull(), // threshold, trend, anomaly
+  type: text("type").notNull(), // rockfall, emergency, medical, weather, crime, natural_disaster, wildlife, accident, other
   severity: text("severity").notNull(), // low, medium, high, critical
   title: text("title").notNull(),
   message: text("message").notNull(),
@@ -83,6 +83,49 @@ export const alerts = pgTable("alerts", {
   status: text("status").notNull().default("active"), // active, acknowledged, resolved
   acknowledgedBy: varchar("acknowledged_by").references(() => users.id),
   acknowledgedAt: timestamp("acknowledged_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User settings for tourist safety preferences
+export const userSettings = pgTable("user_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().default("default"), // In real app, would reference users table
+  geoFenceEnabled: boolean("geo_fence_enabled").notNull().default(true),
+  geoFenceRadius: integer("geo_fence_radius").notNull().default(5),
+  alertOnExit: boolean("alert_on_exit").notNull().default(true),
+  alertOnEntry: boolean("alert_on_entry").notNull().default(false),
+  alertTypes: jsonb("alert_types").notNull().default({
+    medical: true,
+    weather: true,
+    crime: false,
+    naturalDisaster: true,
+    wildlife: true,
+    accident: true,
+    other: false
+  }),
+  severityFilter: jsonb("severity_filter").notNull().default({
+    critical: true,
+    high: true,
+    medium: false,
+    low: false
+  }),
+  notificationSettings: jsonb("notification_settings").notNull().default({
+    pushNotifications: true,
+    emailAlerts: false,
+    smsAlerts: false,
+    soundEnabled: true,
+    vibrationEnabled: true
+  }),
+  emergencyContact1: text("emergency_contact_1"),
+  emergencyContact2: text("emergency_contact_2"),
+  medicalInfo: text("medical_info"),
+  bloodType: text("blood_type"),
+  allergies: text("allergies"),
+  shareLocation: boolean("share_location").notNull().default(true),
+  highAccuracyMode: boolean("high_accuracy_mode").notNull().default(false),
+  locationHistory: boolean("location_history").notNull().default(true),
+  batteryOptimization: boolean("battery_optimization").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -215,6 +258,68 @@ export const insertAlertNotificationSchema = createInsertSchema(alertNotificatio
   createdAt: true,
 });
 
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Enhanced Alert schema with tourist safety validation
+export const touristAlertSchema = z.object({
+  siteId: z.string().min(1, "Site ID is required"),
+  type: z.enum(["emergency", "medical", "weather", "crime", "natural_disaster", "wildlife", "accident", "other"]),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  title: z.string().min(1, "Title is required").max(100, "Title too long"),
+  message: z.string().min(1, "Message is required").max(1000, "Message too long"),
+  actionPlan: z.string().optional(),
+  status: z.enum(["active", "acknowledged", "resolved"]).default("active"),
+});
+
+// User settings validation schema
+export const userSettingsValidationSchema = z.object({
+  geoFence: z.object({
+    enabled: z.boolean(),
+    radius: z.number().min(1).max(100),
+    alertOnExit: z.boolean(),
+    alertOnEntry: z.boolean(),
+  }),
+  alertTypes: z.object({
+    medical: z.boolean(),
+    weather: z.boolean(),
+    crime: z.boolean(),
+    naturalDisaster: z.boolean(),
+    wildlife: z.boolean(),
+    accident: z.boolean(),
+    other: z.boolean(),
+  }),
+  severityFilter: z.object({
+    critical: z.boolean(),
+    high: z.boolean(),
+    medium: z.boolean(),
+    low: z.boolean(),
+  }),
+  notifications: z.object({
+    pushNotifications: z.boolean(),
+    emailAlerts: z.boolean(),
+    smsAlerts: z.boolean(),
+    soundEnabled: z.boolean(),
+    vibrationEnabled: z.boolean(),
+  }),
+  contacts: z.object({
+    emergencyContact1: z.string().optional(),
+    emergencyContact2: z.string().optional(),
+    medicalInfo: z.string().optional(),
+    bloodType: z.string().optional(),
+    allergies: z.string().optional(),
+  }),
+  location: z.object({
+    shareLocation: z.boolean(),
+    highAccuracyMode: z.boolean(),
+    locationHistory: z.boolean(),
+    batteryOptimization: z.boolean(),
+  }),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -234,3 +339,7 @@ export type Model = typeof models.$inferSelect;
 export type InsertModel = z.infer<typeof insertModelSchema>;
 export type AlertNotification = typeof alertNotifications.$inferSelect;
 export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+export type TouristAlert = z.infer<typeof touristAlertSchema>;
+export type UserSettingsValidation = z.infer<typeof userSettingsValidationSchema>;

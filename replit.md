@@ -1,8 +1,8 @@
-# AI-Based Rockfall Prediction & Alert System
+# GeoMindFlow - Smart Tourist Safety System
 
 ## Overview
 
-This is a comprehensive AI-powered rockfall prediction and alert system designed for Smart India Hackathon 2025. The system combines cutting-edge machine learning with real-time IoT monitoring to provide early warning for rockfall events in mountainous and mining regions. It features multi-modal AI models (CNN for drone imagery, LSTM for sensor time series), real-time data processing, interactive mapping with risk visualization, and advanced multi-channel alert systems.
+GeoMindFlow is a comprehensive AI-powered tourist safety system that evolved from a rockfall prediction platform. The system combines cutting-edge machine learning with real-time location tracking to provide comprehensive safety monitoring for tourists in potentially hazardous environments. It features emergency alert systems, live tracking maps, location-based risk assessment, multi-channel notifications, and detailed safety reporting capabilities.
 
 ## User Preferences
 
@@ -14,9 +14,9 @@ Preferred communication style: Simple, everyday language.
 - **React/TypeScript SPA**: Modern single-page application built with React 18+ and TypeScript
 - **Component Library**: shadcn/ui components with Radix UI primitives and Tailwind CSS styling
 - **State Management**: TanStack Query for server state management and caching
-- **Real-time Updates**: WebSocket integration for live alerts and sensor data updates
-- **Responsive Design**: Mobile-first approach with responsive layouts
-- **Routing**: Wouter for lightweight client-side routing
+- **Real-time Updates**: WebSocket integration for live alerts and tourist location updates
+- **Responsive Design**: Mobile-first approach with responsive layouts for mobile and desktop use
+- **Routing**: Wouter for lightweight client-side routing with tourist safety pages
 
 ### Backend Architecture
 - **Node.js/Express Server**: TypeScript-based Express.js server with modern ES modules
@@ -25,12 +25,12 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful endpoints with structured error handling and validation
 - **File Processing**: Multi-modal data ingestion for images, sensor data, and geospatial information
 
-### Machine Learning Pipeline
-- **Multi-Modal Fusion**: Combines CNN (drone imagery), LSTM (sensor time series), and tabular data
-- **Model Architecture**: PyTorch-based models with ResNet50 backbone for image processing
-- **Explainable AI**: SHAP and GradCAM integration for prediction interpretability
-- **Edge Computing**: Raspberry Pi agents for local inference and offline operation
-- **Model Management**: Version control and A/B testing capabilities
+### Smart Safety Features
+- **Emergency Alert System**: Quick emergency reporting with location sharing and real-time dispatch
+- **Live Tourist Tracking**: Real-time location monitoring with route deviation detection
+- **Location Search & Risk Assessment**: Search any location for live weather data and safety risk analysis
+- **Geo-fence Alerts**: Configurable safety zones with entry/exit notifications
+- **Multi-Modal Data Processing**: Weather, crime statistics, medical facility proximity, and connectivity analysis
 
 ### Data Storage Strategy
 - **PostgreSQL + PostGIS**: Primary database for structured data and geospatial features
@@ -39,10 +39,11 @@ Preferred communication style: Simple, everyday language.
 - **Caching Layer**: Redis for session management and real-time data caching
 
 ### Alert and Notification System
-- **Multi-Channel Alerts**: SMS, email, WhatsApp, and push notifications
-- **Severity-Based Routing**: Different notification channels based on risk levels
-- **Real-time Broadcasting**: WebSocket-based alert distribution to connected clients
-- **Alert Management**: Acknowledgment system and escalation procedures
+- **Multi-Channel Alerts**: Push notifications, SMS, email, and emergency contact integration
+- **Severity-Based Routing**: Different notification channels based on alert priority levels (critical/high/medium/low)
+- **Real-time Broadcasting**: WebSocket-based alert distribution to connected users and authorities
+- **Alert Management**: Comprehensive settings, user preferences, and emergency contact management
+- **Tourist-Specific Alerts**: Location-based alerts for weather, crime, natural disasters, wildlife, accidents
 
 ## External Dependencies
 

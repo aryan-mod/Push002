@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import MetricsCards from "@/components/dashboard/metrics-cards";
-import InteractiveMap from "@/components/dashboard/interactive-map";
+import LiveTrackingMap from "@/components/dashboard/live-tracking-map";
 import RealTimeAlerts from "@/components/dashboard/real-time-alerts";
 import TimeSeriesChart from "@/components/dashboard/time-series-chart";
 import ModelPerformance from "@/components/dashboard/model-performance";
@@ -38,8 +38,8 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col">
       <Header 
-        title="Risk Assessment Dashboard"
-        subtitle="Real-time rockfall monitoring and prediction"
+        title="GeoMindFlow Safety Dashboard"
+        subtitle="Smart Tourist Safety System with real-time monitoring and alerts"
       />
       
       <div className="flex-1 p-6 space-y-6">
@@ -51,13 +51,9 @@ export default function Dashboard() {
 
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Interactive Map */}
+          {/* Live Tracking Map */}
           <div className="lg:col-span-2">
-            <InteractiveMap
-              sites={sites}
-              isLoading={sitesLoading}
-              onSiteSelect={setSelectedSiteId}
-            />
+            <LiveTrackingMap />
           </div>
 
           {/* Real-time Alerts */}

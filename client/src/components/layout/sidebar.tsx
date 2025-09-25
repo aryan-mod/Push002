@@ -11,16 +11,19 @@ import {
   Bell, 
   BarChart3, 
   Settings, 
-  Mountain 
+  AlertTriangle,
+  Shield
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Site Monitoring", href: "/sites", icon: MapPin },
+  { name: "Live Map Tracking", href: "/sites", icon: MapPin },
+  { name: "Emergency Alert", href: "/emergency", icon: AlertTriangle },
+  { name: "Notifications", href: "/notifications", icon: Bell },
+  { name: "Safety Reports", href: "/reports", icon: BarChart3 },
+  { name: "Alert Settings", href: "/settings", icon: Settings },
   { name: "Model Management", href: "/models", icon: Brain },
   { name: "Data Upload", href: "/upload", icon: Upload },
-  { name: "Alert Settings", href: "/alerts", icon: Bell },
-  { name: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
 export default function Sidebar() {
@@ -32,11 +35,11 @@ export default function Sidebar() {
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Mountain className="h-6 w-6 text-primary-foreground" />
+            <Shield className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold">RockWatch AI</h1>
-            <p className="text-sm text-muted-foreground">Prediction System</p>
+            <h1 className="text-lg font-semibold">GeoMindFlow</h1>
+            <p className="text-sm text-muted-foreground">Tourist Safety System</p>
           </div>
         </div>
       </div>
@@ -67,11 +70,11 @@ export default function Sidebar() {
       <div className="p-4 border-t border-border">
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-muted">SC</AvatarFallback>
+            <AvatarFallback className="bg-muted">AS</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <p className="text-sm font-medium">Dr. Sarah Chen</p>
-            <p className="text-xs text-muted-foreground">Site Engineer</p>
+            <p className="text-sm font-medium">Alex Singh</p>
+            <p className="text-xs text-muted-foreground">Safety Coordinator</p>
           </div>
           <Button variant="ghost" size="sm" data-testid="button-user-settings">
             <Settings className="h-4 w-4" />
