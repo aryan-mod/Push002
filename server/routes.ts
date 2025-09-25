@@ -363,5 +363,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notifications management
+  app.get("/api/v1/notifications", async (req, res) => {
+    try {
+      // Get recent alerts and system notifications as notifications
+      const alerts = await storage.getActiveAlerts();
+      
+      // Convert alerts to notification format
+      const notifications = alerts.map(alert => ({
+        id: alert.id,
+        type: 'alert',
+        title: alert.title,
+        message: alert.message,
+        timestamp: alert.createdAt?.toISOString() || new Date().toISOString(),
+        read: alert.status === 'acknowledged',
+        severity: alert.severity,
+        siteId: alert.siteId,
+        siteName: alert.site.name
+      }));
+
+      // Add system notifications (mock for now, could be from a notifications table)
+      const systemNotifications = [
+        {
+          id: 'sys-1',
+          type: 'system',
+          title: 'System Maintenance',
+          message: 'Scheduled maintenance completed successfully',
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          read: true,
+          severity: 'low'
+        }
+      ];
+
+      const allNotifications = [...notifications, ...systemNotifications]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 50); // Limit to 50 most recent
+
+      res.json(allNotifications);
+    } catch (error) {
+      console.error("Notifications fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/v1/notifications/:id/read", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // If it's an alert notification, acknowledge the alert
+      if (id.startsWith('sys-')) {
+        // Handle system notification read status (could be stored in a separate table)
+        res.json({ success: true });
+      } else {
+        // It's an alert, acknowledge it
+        await storage.acknowledgeAlert(id, 'current-user'); // Replace with actual user ID
+        
+        // Broadcast acknowledgment
+        websocketService.broadcast({
+          type: "alert_acknowledged",
+          data: { alertId: id, userId: 'current-user' }
+        });
+        
+        res.json({ success: true });
+      }
+    } catch (error) {
+      console.error("Notification read error:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  app.post("/api/v1/notifications/read-all", async (req, res) => {
+    try {
+      // Acknowledge all active alerts for current user
+      const alerts = await storage.getActiveAlerts();
+      
+      for (const alert of alerts) {
+        if (alert.status === 'active') {
+          await storage.acknowledgeAlert(alert.id, 'current-user'); // Replace with actual user ID
+        }
+      }
+      
+      // Broadcast that all alerts were acknowledged
+      websocketService.broadcast({
+        type: "alerts_bulk_acknowledged",
+        data: { userId: 'current-user', count: alerts.length }
+      });
+      
+      res.json({ success: true, acknowledgedCount: alerts.length });
+    } catch (error) {
+      console.error("Bulk notification read error:", error);
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Emergency alert endpoint
+  app.post("/api/v1/emergency-alert", async (req, res) => {
+    try {
+      const { userId, timestamp, location } = req.body;
+      
+      // Create an emergency alert
+      const emergencyAlert = await storage.createAlert({
+        siteId: 'emergency-global', // Special site ID for emergency alerts
+        type: 'emergency',
+        severity: 'critical',
+        title: 'Emergency Alert Triggered',
+        message: `Emergency alert triggered by user from ${location || 'dashboard'} at ${new Date(timestamp).toLocaleString()}`,
+        actionPlan: 'Immediate response required. Contact emergency services and site personnel.',
+        status: 'active'
+      });
+      
+      // Send emergency notifications
+      await alertService.sendAlert(emergencyAlert);
+      
+      // Broadcast emergency alert immediately
+      websocketService.broadcast({
+        type: "emergency_alert",
+        data: {
+          ...emergencyAlert,
+          triggeredBy: userId,
+          location,
+          timestamp
+        }
+      });
+      
+      res.json({ 
+        success: true, 
+        alertId: emergencyAlert.id,
+        message: 'Emergency alert sent successfully'
+      });
+    } catch (error) {
+      console.error("Emergency alert error:", error);
+      res.status(500).json({ error: "Failed to send emergency alert" });
+    }
+  });
+
   return httpServer;
 }
