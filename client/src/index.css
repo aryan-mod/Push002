@@ -1,3 +1,6 @@
+/* Leaflet CSS import - must come first */
+@import 'leaflet/dist/leaflet.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,6 +94,11 @@
   50% { opacity: 0.5; }
 }
 
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
 .pulse-dot {
   animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -99,6 +107,58 @@
 .map-container {
   background: linear-gradient(45deg, hsl(210, 83%, 53%, 0.1), hsl(142, 71%, 45%, 0.1));
   position: relative;
+}
+
+/* Leaflet map container */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* Custom marker styles */
+.leaflet-marker-icon {
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+}
+
+/* Risk level marker colors */
+.risk-marker-critical {
+  background-color: hsl(0, 84.2%, 60.2%) !important;
+  animation: pulse-dot 2s infinite;
+}
+
+.risk-marker-high {
+  background-color: hsl(0, 84.2%, 60.2%) !important;
+  animation: pulse-dot 2s infinite;
+}
+
+.risk-marker-medium {
+  background-color: hsl(38, 92%, 50%) !important;
+}
+
+.risk-marker-low {
+  background-color: hsl(142, 71%, 45%) !important;
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-popup-content {
+  margin: 1rem;
+  line-height: 1.4;
+}
+
+/* Simulate event button */
+.simulate-event-button {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
 }
 
 .map-overlay {
