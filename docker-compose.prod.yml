@@ -1,0 +1,385 @@
+version: '3.8'
+
+services:
+  # Production PostgreSQL with backup
+  postgres:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: rockfall_postgres_prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - rockfall_network_prod
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # Production Redis with persistence
+  redis:
+    image: redis:7-alpine
+    container_name: rockfall_redis_prod
+    volumes:
+      - redis_data_prod:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - rockfall_network_prod
+    command: redis-server /usr/local/etc/redis/redis.conf
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # Production MinIO cluster
+  minio:
+    image: minio/minio:latest
+    container_name: rockfall_minio_prod
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER_REDIRECT_URL: https://minio.${DOMAIN}
+    volumes:
+      - minio_data_prod:/data
+    networks:
+      - rockfall_network_prod
+    command: server /data --console-address ":9001"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: always
+
+  # Production MQTT with SSL
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: rockfall_mqtt_prod
+    volumes:
+      - ./mqtt/mosquitto.prod.conf:/mosquitto/config/mosquitto.conf
+      - ./mqtt/passwd:/mosquitto/config/passwd
+      - ./ssl/mqtt:/mosquitto/certs
+      - mqtt_data_prod:/mosquitto/data
+      - mqtt_logs_prod:/mosquitto/log
+    networks:
+      - rockfall_network_prod
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    restart: always
+
+  # Production Backend with multiple replicas
+  backend:
+    image: ${DOCKER_REGISTRY}/rockfall-backend:${VERSION}
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MQTT_BROKER=mqtt
+      - MQTT_PORT=8883
+      - MQTT_USE_SSL=true
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SENTRY_DSN=${SENTRY_DSN}
+    volumes:
+      - ./models:/app/models:ro
+      - backend_logs_prod:/app/logs
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Production Celery Workers
+  celery_worker:
+    image: ${DOCKER_REGISTRY}/rockfall-backend:${VERSION}
+    deploy:
+      replicas: 4
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 3G
+          cpus: '1.5'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+    command: celery -A server.celery_app worker --loglevel=info --concurrency=4 --max-tasks-per-child=1000
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - ENVIRONMENT=production
+    volumes:
+      - ./models:/app/models:ro
+      - celery_logs_prod:/app/logs
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      - postgres
+      - redis
+
+  # Celery Beat scheduler
+  celery_beat:
+    image: ${DOCKER_REGISTRY}/rockfall-backend:${VERSION}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    command: celery -A server.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=production
+    volumes:
+      - celery_beat_data_prod:/app/celerybeat-schedule
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      - postgres
+      - redis
+
+  # Production Frontend
+  frontend:
+    image: ${DOCKER_REGISTRY}/rockfall-frontend:${VERSION}
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.${DOMAIN}
+      - NEXT_PUBLIC_MAPBOX_TOKEN=${MAPBOX_ACCESS_TOKEN}
+      - NEXT_PUBLIC_WS_URL=wss://api.${DOMAIN}
+    networks:
+      - rockfall_network_prod
+
+  # Production Nginx with SSL
+  nginx:
+    image: nginx:alpine
+    container_name: rockfall_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
+      - ./ssl/nginx:/etc/nginx/ssl
+      - nginx_logs_prod:/var/log/nginx
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      - backend
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    restart: always
+
+  # Production Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rockfall_prometheus_prod
+    volumes:
+      - ./monitoring/prometheus.prod.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data_prod:/prometheus
+    networks:
+      - rockfall_network_prod
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    restart: always
+
+  # Production Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rockfall_grafana_prod
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SERVER_ROOT_URL=https://grafana.${DOMAIN}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=${POSTGRES_DB}
+      - GF_DATABASE_USER=${POSTGRES_USER}
+      - GF_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - grafana_data_prod:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      - prometheus
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    restart: always
+
+  # Log aggregation with Fluentd
+  fluentd:
+    image: fluent/fluentd:v1.16-debian-1
+    container_name: rockfall_fluentd_prod
+    volumes:
+      - ./logging/fluent.conf:/fluentd/etc/fluent.conf
+      - backend_logs_prod:/var/log/backend
+      - celery_logs_prod:/var/log/celery
+      - nginx_logs_prod:/var/log/nginx
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      - backend
+    restart: always
+
+  # Database backup service
+  db_backup:
+    image: postgres:15-alpine
+    container_name: rockfall_db_backup
+    environment:
+      - PGUSER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+      - PGHOST=postgres
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh
+    networks:
+      - rockfall_network_prod
+    depends_on:
+      - postgres
+    command: /bin/sh -c "chmod +x /backup.sh && crond -f"
+    restart: always
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+  minio_data_prod:
+    driver: local
+  mqtt_data_prod:
+    driver: local
+  mqtt_logs_prod:
+    driver: local
+  backend_logs_prod:
+    driver: local
+  celery_logs_prod:
+    driver: local
+  celery_beat_data_prod:
+    driver: local
+  prometheus_data_prod:
+    driver: local
+  grafana_data_prod:
+    driver: local
+  nginx_logs_prod:
+    driver: local
+
+networks:
+  rockfall_network_prod:
+    driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+# Docker Swarm secrets (for production)
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  minio_secret_key:
+    external: true
+  jwt_secret:
+    external: true
